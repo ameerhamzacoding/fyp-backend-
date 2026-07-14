@@ -42,7 +42,7 @@ router.get('/predict-tracks', auth, async (req, res) => {
     console.log("================================");
 
     const aiResponse = await axios.post(
-      'http://127.0.0.1:8000/predict-career',
+      `${process.env.AI_SERVICE_URL}/predict-career`,
       aiPayload
     );
 
