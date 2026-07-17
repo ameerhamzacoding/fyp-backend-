@@ -6,5 +6,10 @@
   "routes": [
     { "src": "/(.*)", "dest": "Server.js" }
   ],
-  "regions": ["bom1"]
+  "regions": ["bom1"],
+  "functions": {
+    "Server.js": {
+      "maxDuration": 30
+    }
+  }
 }
