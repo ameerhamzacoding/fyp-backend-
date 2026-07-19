@@ -67,9 +67,9 @@ CRITICAL REAL-TIME SYSTEM CONTEXT:
   } catch (error) {
     console.error("Live Chatbot Error:", error);
     
-    // Clean, professional presentation fallback message
+    // 🚀 Outputting the raw error directly so we can inspect what the endpoint rejects
     return res.json({ 
-      reply: "I'm processing a high volume of profile tracks right now. Try asking me about your skills again in a quick second!" 
+      reply: `Backend Error: ${error.message}` 
     });
   }
 });
