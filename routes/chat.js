@@ -34,8 +34,7 @@ CRITICAL REAL-TIME SYSTEM CONTEXT:
 `;
 
     // 3. Initialize the base model safely
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
+const model = genAI.getGenerativeModel({ model: "gemini-pro" }); // 🚀 Fixed model string
     // 4. Combine system prompt and user query to ensure context is passed directly
     const combinedPrompt = `${systemPrompt}\n\nUser Query: ${message}`;
 
