@@ -10,7 +10,6 @@ const auth = require('../middleware/auth');
 // @access   Private
 // =======================================================
 router.post('/', auth, async (req, res) => {
-  // 🚀 FIXED: Added expiryDate to the destructured body fields
   const { title, company, location, description, skillsRequired, expiryDate } = req.body;
 
   try {
@@ -27,7 +26,6 @@ router.post('/', auth, async (req, res) => {
       company,
       location,
       description,
-      // 🚀 FIXED: Explicitly added expiryDate here so Mongoose receives it!
       expiryDate,
       skillsRequired: Array.isArray(skillsRequired) ? skillsRequired : skillsRequired.split(',').map(s => s.trim())
     });
@@ -43,14 +41,28 @@ router.post('/', auth, async (req, res) => {
 
 // =======================================================
 // @route    GET api/jobs
-// @desc     Get all available job postings for matching dashboards
-// @access   Private (Students & Professionals can browse)
+// @desc     Get available job postings (Filtered for HR, Global for Students)
+// @access   Private
 // =======================================================
 router.get('/', auth, async (req, res) => {
   try {
-    // Fetch jobs and sort by newest first
-    const jobs = await Job.find().sort({ datePosted: -1 });
+    // 1. Fetch the user profile to identify their dashboard perspective
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ msg: 'User profile tracking context mismatch.' });
+    }
+
+    let query = {};
+
+    // 🚀 FIXED: If the user is HR, filter down so they only retrieve jobs matching their recruiter ID!
+    if (user.role === 'hr') {
+      query = { recruiter: req.user.id };
+    }
+
+    // 2. Fetch based on the dynamically configured query properties
+    const jobs = await Job.find(query).sort({ datePosted: -1 });
     res.json(jobs);
+    
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
