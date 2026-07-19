@@ -54,7 +54,7 @@ CRITICAL REAL-TIME SYSTEM CONTEXT:
     if (!response.ok) {
       const errorText = await response.text();
       console.error("Direct Gemini API Error Response:", errorText);
-      throw new Error(`Google API status error: ${response.status}`);
+      throw new Error(`Google API status error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
@@ -67,9 +67,9 @@ CRITICAL REAL-TIME SYSTEM CONTEXT:
   } catch (error) {
     console.error("Live Chatbot Error:", error);
     
-    // 🚀 Fallback mechanism: If anything breaks, output a friendly career notice so your UI never gets stuck!
+    // 🚀 Temporary: Return the real error message to the UI screen so we can pinpoint it instantly!
     return res.json({ 
-      reply: "I'm having trouble syncing with my external AI brain cells right now. Ask me about your core career metrics again in a quick second!" 
+      reply: `Backend Error: ${error.message}` 
     });
   }
 });
