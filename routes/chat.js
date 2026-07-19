@@ -33,8 +33,9 @@ CRITICAL REAL-TIME SYSTEM CONTEXT:
 - Keep your responses professional, concise, encouraging, and tailored to an IT/technical student perspective. Avoid super long blocks of text.
 `;
 
-    // 3. Initialize the base model safely
-const model = genAI.getGenerativeModel({ model: "gemini-pro" }); // 🚀 Fixed model string
+    // 3. Initialize the base model safely using the active gemini-1.5-pro identifier
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+
     // 4. Combine system prompt and user query to ensure context is passed directly
     const combinedPrompt = `${systemPrompt}\n\nUser Query: ${message}`;
 
