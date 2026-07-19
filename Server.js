@@ -20,6 +20,7 @@ app.use('/api/guidance', require('./routes/guidance'));
 // 🚀 ADD THIS LINE TO LINK YOUR ASSESSMENT ENTRIES:
 app.use('/api/assessment', require('./routes/assessment'));
 app.use('/api/match', require('./routes/match'));
+app.use('/api/chat', require('./routes/chat'));
 
 // Simple Test Route
 app.get('/', (req, res) => {
