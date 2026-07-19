@@ -13,22 +13,34 @@ router.post('/', auth, async (req, res) => {
   const { title, company, location, description, skillsRequired, expiryDate } = req.body;
 
   try {
-    // 1. Fetch user from DB to verify role dynamically
-    const user = await User.findById(req.user.id);
+    // 1. Safe validation check on request token attachment
+    if (!req.user) {
+      return res.status(401).json({ msg: 'Authentication invalid. No user payload attached.' });
+    }
+
+    // Resolve the ID safely whether middleware attaches it as an object or a flat property string
+    const userId = req.user.id || (typeof req.user === 'string' ? req.user : req.user._id); 
     
-    // 🚀 FIXED: Added fallback and case-insensitivity check (.toLowerCase()) so 'HR' or 'hr' both pass safely
-    if (!user || !user.role || user.role.toLowerCase() !== 'hr') {
-      console.log(`[POST REJECTED] User ${req.user.id} has role '${user?.role}' instead of 'hr'`);
+    if (!userId) {
+      return res.status(401).json({ msg: 'Authentication invalid. Could not resolve user execution ID.' });
+    }
+
+    // 2. Fetch user from DB to verify role dynamically
+    const user = await User.findById(userId);
+    const userRole = user && user.role ? user.role.toLowerCase() : '';
+
+    if (userRole !== 'hr') {
       return res.status(403).json({ msg: 'Access denied. Only HR recruiters can post jobs.' });
     }
 
-    // 2. Validate essential fields aren't blank
+    // 3. Make sure necessary text strings exist
     if (!title || !company || !location) {
-      return res.status(400).json({ msg: 'Please provide title, company, and location.' });
+      return res.status(400).json({ msg: 'Please fill out title, company, and location parameters.' });
     }
 
+    // 4. Build and link the document model record
     const newJob = new Job({
-      recruiter: req.user.id,
+      recruiter: userId, 
       title,
       company,
       location,
@@ -38,13 +50,11 @@ router.post('/', auth, async (req, res) => {
     });
 
     const job = await newJob.save();
-    console.log(`[SUCCESS] New Job Document Saved: "${job.title}" by Recruiter ID: ${req.user.id}`);
-    
     return res.status(201).json({ job, msg: 'Job posting published successfully!' });
 
   } catch (err) {
-    console.error("Backend Post Job Error:", err.message);
-    res.status(500).send('Server Error saving job.');
+    console.error("Backend Post Job Error Logged:", err.message);
+    return res.status(500).send('Server Error saving job execution map.');
   }
 });
 
@@ -55,7 +65,13 @@ router.post('/', auth, async (req, res) => {
 // =======================================================
 router.get('/', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    if (!req.user) {
+      return res.status(401).json({ msg: 'Authentication invalid.' });
+    }
+
+    const userId = req.user.id || (typeof req.user === 'string' ? req.user : req.user._id);
+    const user = await User.findById(userId);
+    
     if (!user) {
       return res.status(404).json({ msg: 'User profile tracking context mismatch.' });
     }
@@ -63,19 +79,16 @@ router.get('/', auth, async (req, res) => {
     let query = {};
 
     if (user.role && user.role.toLowerCase() === 'hr') {
-      query = { recruiter: req.user.id };
+      query = { recruiter: userId };
     }
 
-    // 🚀 FIXED: Added a safe fallback sort parameter. If your model uses 'createdAt' instead of 'datePosted', 
-    // it will sort cleanly without returning an empty state list!
+    // Sort safely using both index options so it works on any version configuration setup
     const jobs = await Job.find(query).sort({ createdAt: -1, datePosted: -1 });
-    
-    console.log(`[GET JOBS] Recruiter "${req.user.id}" fetched ${jobs.length} total active job entries.`);
     return res.json(jobs);
     
   } catch (err) {
     console.error("Backend Fetch Jobs Error:", err.message);
-    res.status(500).send('Server Error retrieving data.');
+    return res.status(500).send('Server Error retrieving data.');
   }
 });
 
