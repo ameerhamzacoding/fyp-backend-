@@ -13,11 +13,18 @@ router.post('/', auth, async (req, res) => {
   const { title, company, location, description, skillsRequired, expiryDate } = req.body;
 
   try {
-    // Fetch user from DB to verify role dynamically
+    // 1. Fetch user from DB to verify role dynamically
     const user = await User.findById(req.user.id);
     
-    if (!user || user.role !== 'hr') {
-      return res.status(401).json({ msg: 'Access denied. Only HR recruiters can post jobs.' });
+    // 🚀 FIXED: Added fallback and case-insensitivity check (.toLowerCase()) so 'HR' or 'hr' both pass safely
+    if (!user || !user.role || user.role.toLowerCase() !== 'hr') {
+      console.log(`[POST REJECTED] User ${req.user.id} has role '${user?.role}' instead of 'hr'`);
+      return res.status(403).json({ msg: 'Access denied. Only HR recruiters can post jobs.' });
+    }
+
+    // 2. Validate essential fields aren't blank
+    if (!title || !company || !location) {
+      return res.status(400).json({ msg: 'Please provide title, company, and location.' });
     }
 
     const newJob = new Job({
@@ -31,11 +38,13 @@ router.post('/', auth, async (req, res) => {
     });
 
     const job = await newJob.save();
-    res.json({ job, msg: 'Job posting published successfully!' });
+    console.log(`[SUCCESS] New Job Document Saved: "${job.title}" by Recruiter ID: ${req.user.id}`);
+    
+    return res.status(201).json({ job, msg: 'Job posting published successfully!' });
 
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    console.error("Backend Post Job Error:", err.message);
+    res.status(500).send('Server Error saving job.');
   }
 });
 
@@ -46,7 +55,6 @@ router.post('/', auth, async (req, res) => {
 // =======================================================
 router.get('/', auth, async (req, res) => {
   try {
-    // 1. Fetch the user profile to identify their dashboard perspective
     const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ msg: 'User profile tracking context mismatch.' });
@@ -54,18 +62,20 @@ router.get('/', auth, async (req, res) => {
 
     let query = {};
 
-    // 🚀 FIXED: If the user is HR, filter down so they only retrieve jobs matching their recruiter ID!
-    if (user.role === 'hr') {
+    if (user.role && user.role.toLowerCase() === 'hr') {
       query = { recruiter: req.user.id };
     }
 
-    // 2. Fetch based on the dynamically configured query properties
-    const jobs = await Job.find(query).sort({ datePosted: -1 });
-    res.json(jobs);
+    // 🚀 FIXED: Added a safe fallback sort parameter. If your model uses 'createdAt' instead of 'datePosted', 
+    // it will sort cleanly without returning an empty state list!
+    const jobs = await Job.find(query).sort({ createdAt: -1, datePosted: -1 });
+    
+    console.log(`[GET JOBS] Recruiter "${req.user.id}" fetched ${jobs.length} total active job entries.`);
+    return res.json(jobs);
     
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    console.error("Backend Fetch Jobs Error:", err.message);
+    res.status(500).send('Server Error retrieving data.');
   }
 });
 
