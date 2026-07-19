@@ -1,11 +1,10 @@
 const express = require('express');
 const router = express.Router();
-// 🚀 FIX: Use 'GoogleGenerativeAI' instead of 'GoogleGenAI'
 const { GoogleGenerativeAI } = require('@google/generative-ai'); 
 const Profile = require('../models/Profile'); 
 const auth = require('../middleware/auth'); 
 
-// 🚀 FIX: Initialize the correct class directly passing the string key
+// Initialize GenAI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // @route   POST api/chat
@@ -24,24 +23,24 @@ router.post('/', auth, async (req, res) => {
     const skillsListString = userSkills.length > 0 ? userSkills.join(', ') : "No skills added yet";
 
     // 2. Configure the System Instruction persona constraints
-    const systemInstruction = `
-      You are an advanced, helpful AI Career Counselor integrated into a Final Year Project system.
-      You have complete access to general knowledge, history, sports, science, and trivia, so feel free to answer any general knowledge queries naturally.
-      
-      CRITICAL REAL-TIME SYSTEM CONTEXT:
-      - The logged-in user's actual saved skills in our system database are exactly: [ ${skillsListString} ].
-      - If the user asks about their skills, missing gaps, profile, or career recommendations, you MUST look at this specific list to give customized advice. 
-      - Keep your responses professional, concise, encouraging, and tailored to an IT/technical student perspective. Avoid super long blocks of text.
-    `;
+    const systemPrompt = `
+You are an advanced, helpful AI Career Counselor integrated into a Final Year Project system.
+You have complete access to general knowledge, history, sports, science, and trivia, so feel free to answer any general knowledge queries naturally.
 
-    // 3. Initialize the model using the corrected instance method
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      systemInstruction: systemInstruction 
-    });
+CRITICAL REAL-TIME SYSTEM CONTEXT:
+- The logged-in user's actual saved skills in our system database are exactly: [ ${skillsListString} ].
+- If the user asks about their skills, missing gaps, profile, or career recommendations, you MUST look at this specific list to give customized advice. 
+- Keep your responses professional, concise, encouraging, and tailored to an IT/technical student perspective. Avoid super long blocks of text.
+`;
 
-    // 4. Generate the response text content
-    const result = await model.generateContent(message);
+    // 3. Initialize the base model safely
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    // 4. Combine system prompt and user query to ensure context is passed directly
+    const combinedPrompt = `${systemPrompt}\n\nUser Query: ${message}`;
+
+    // 5. Generate content safely
+    const result = await model.generateContent(combinedPrompt);
     const aiReply = result.response.text();
 
     return res.json({ reply: aiReply });
