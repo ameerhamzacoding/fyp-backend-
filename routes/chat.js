@@ -29,9 +29,9 @@ CRITICAL REAL-TIME SYSTEM CONTEXT:
 - Keep your responses professional, concise, encouraging, and tailored to an IT/technical student perspective. Avoid super long blocks of text.
 `;
 
-    // 3. Define the direct Google API endpoint url using the active gemini-2.5-flash model
+    // 3. Define the direct Google API endpoint url using the active gemini-2.5-pro model
     const apiKey = process.env.GEMINI_API_KEY;
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
 
     // 4. Send the request directly using standard global fetch
     const response = await fetch(apiUrl, {
@@ -67,9 +67,9 @@ CRITICAL REAL-TIME SYSTEM CONTEXT:
   } catch (error) {
     console.error("Live Chatbot Error:", error);
     
-    // 🚀 Temporary: Return the real error message to the UI screen so we can pinpoint it instantly!
+    // Clean, professional presentation fallback message
     return res.json({ 
-      reply: `Backend Error: ${error.message}` 
+      reply: "I'm processing a high volume of profile tracks right now. Try asking me about your skills again in a quick second!" 
     });
   }
 });
