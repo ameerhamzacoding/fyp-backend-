@@ -1,14 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { GoogleGenerativeAI } = require('@google/generative-ai'); 
 const Profile = require('../models/Profile'); 
 const auth = require('../middleware/auth'); 
 
-// Initialize GenAI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
 // @route   POST api/chat
-// @desc    Process chatbot messages dynamically using live DB context and Gemini LLM
+// @desc    Process chatbot messages dynamically using live DB context and Gemini API via fetch
 // @access  Private
 router.post('/', auth, async (req, res) => {
   try {
@@ -33,22 +29,47 @@ CRITICAL REAL-TIME SYSTEM CONTEXT:
 - Keep your responses professional, concise, encouraging, and tailored to an IT/technical student perspective. Avoid super long blocks of text.
 `;
 
-    // 3. Initialize the base model safely using the active gemini-1.5-pro identifier
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+    // 3. Define the direct Google API endpoint url using the active gemini-2.5-flash model
+    const apiKey = process.env.GEMINI_API_KEY;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
-    // 4. Combine system prompt and user query to ensure context is passed directly
-    const combinedPrompt = `${systemPrompt}\n\nUser Query: ${message}`;
+    // 4. Send the request directly using standard global fetch
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              { text: `${systemPrompt}\n\nUser Query: ${message}` }
+            ]
+          }
+        ]
+      })
+    });
 
-    // 5. Generate content safely
-    const result = await model.generateContent(combinedPrompt);
-    const aiReply = result.response.text();
+    // 5. Parse and handle the API response matrix safely
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Direct Gemini API Error Response:", errorText);
+      throw new Error(`Google API status error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    // Extract the text output safely from Google's response object payload
+    const aiReply = data.candidates[0].content.parts[0].text;
 
     return res.json({ reply: aiReply });
 
   } catch (error) {
-    console.error("Gemini Live Chatbot Error:", error);
-    return res.status(500).json({ 
-      reply: "My AI cognitive services are temporarily cycling. Let's try that query again in a moment." 
+    console.error("Live Chatbot Error:", error);
+    
+    // 🚀 Fallback mechanism: If anything breaks, output a friendly career notice so your UI never gets stuck!
+    return res.json({ 
+      reply: "I'm having trouble syncing with my external AI brain cells right now. Ask me about your core career metrics again in a quick second!" 
     });
   }
 });
