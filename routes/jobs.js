@@ -132,7 +132,7 @@ router.get('/', auth, async (req, res) => {
 
     const jobs = await Job.find(query)
       .sort({ createdAt: -1 })
-      .populate('recruiter', 'name email');
+      
 
     console.log('Logged-in user ID:', userId);
     console.log('User role:', user.role);
