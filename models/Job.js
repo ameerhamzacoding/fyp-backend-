@@ -1,20 +1,55 @@
 const mongoose = require('mongoose');
 
 const JobSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  company: { type: String, required: true },
-  location: { type: String, required: true },
-  skillsRequired: [{ type: String }],
-  description: { type: String },
-  // 🌟 NEW FIELD: Capture when the job card naturally goes offline
-  expiryDate: { type: Date, required: true }, 
-  // 🌟 ENHANCED FIELD: Support dynamic lifecycle status states
-  status: { 
-    type: String, 
-    enum: ['Active', 'Expired', 'Position Filled'], 
-    default: 'Active' 
+  recruiter: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    index: true
   },
-  createdAt: { type: Date, default: Date.now }
+
+  title: {
+    type: String,
+    required: true,
+    trim: true
+  },
+
+  company: {
+    type: String,
+    required: true,
+    trim: true
+  },
+
+  location: {
+    type: String,
+    required: true,
+    trim: true
+  },
+
+  skillsRequired: [
+    {
+      type: String,
+      trim: true
+    }
+  ],
+
+  description: {
+    type: String,
+    trim: true
+  },
+
+  expiryDate: {
+    type: Date,
+    required: true
+  },
+
+  status: {
+    type: String,
+    enum: ['Active', 'Expired', 'Position Filled'],
+    default: 'Active'
+  }
+}, {
+  timestamps: true
 });
 
 module.exports = mongoose.model('Job', JobSchema);
