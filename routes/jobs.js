@@ -1,31 +1,27 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose'); // 🚀 IMPORT MONGOOSE FOR DATA CASTING
 const Job = require('../models/Job');
 const User = require('../models/User'); 
 const auth = require('../middleware/auth');
 
 // =======================================================
 // @route    POST api/jobs
-// @desc     Create a new job posting (HR Only)
-// @access   Private
 // =======================================================
 router.post('/', auth, async (req, res) => {
   const { title, company, location, description, skillsRequired, expiryDate } = req.body;
 
   try {
-    // 1. Safe validation check on request token attachment
     if (!req.user) {
       return res.status(401).json({ msg: 'Authentication invalid. No user payload attached.' });
     }
 
-    // Resolve the ID safely whether middleware attaches it as an object or a flat property string
     const userId = req.user.id || (typeof req.user === 'string' ? req.user : req.user._id); 
     
     if (!userId) {
       return res.status(401).json({ msg: 'Authentication invalid. Could not resolve user execution ID.' });
     }
 
-    // 2. Fetch user from DB to verify role dynamically
     const user = await User.findById(userId);
     const userRole = user && user.role ? user.role.toLowerCase() : '';
 
@@ -33,14 +29,15 @@ router.post('/', auth, async (req, res) => {
       return res.status(403).json({ msg: 'Access denied. Only HR recruiters can post jobs.' });
     }
 
-    // 3. Make sure necessary text strings exist
     if (!title || !company || !location) {
       return res.status(400).json({ msg: 'Please fill out title, company, and location parameters.' });
     }
 
-    // 4. Build and link the document model record
+    // 🚀 CAST STRING ID TO MONGOOSE OBJECT ID FOR SECURE DATABASE MAPPING
+    const recruiterObjectId = new mongoose.Types.ObjectId(userId);
+
     const newJob = new Job({
-      recruiter: userId, 
+      recruiter: recruiterObjectId, 
       title,
       company,
       location,
@@ -60,8 +57,6 @@ router.post('/', auth, async (req, res) => {
 
 // =======================================================
 // @route    GET api/jobs
-// @desc     Get available job postings (Filtered for HR, Global for Students)
-// @access   Private
 // =======================================================
 router.get('/', auth, async (req, res) => {
   try {
@@ -79,10 +74,10 @@ router.get('/', auth, async (req, res) => {
     let query = {};
 
     if (user.role && user.role.toLowerCase() === 'hr') {
-      query = { recruiter: userId };
+      // 🚀 CAST STRING TO OBJECT ID SO MONGO FIND SEARCHES CLEANLY
+      query = { recruiter: new mongoose.Types.ObjectId(userId) };
     }
 
-    // Sort safely using both index options so it works on any version configuration setup
     const jobs = await Job.find(query).sort({ createdAt: -1, datePosted: -1 });
     return res.json(jobs);
     
